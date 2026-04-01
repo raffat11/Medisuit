@@ -1,0 +1,50 @@
+query ListAllPatients @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  patients {
+    id
+    firstName
+    lastName
+    dateOfBirth
+    gender
+    email
+    phoneNumber
+    user {
+      id
+      email
+    }
+  }
+}
+
+query GetPatientMedicalRecords($patientId: UUID!) @auth(level: USER) {
+  medicalRecords(where: {patientId: {eq: $patientId}}) {
+    id
+    visitDate
+    diagnosis
+    treatment
+    prescriptions
+    observations
+    patient {
+      firstName
+      lastName
+    }
+  }
+}
+
+mutation CreateAppointment($patientId: UUID!, $medicalProfessionalId: UUID!, $appointmentDate: Date!, $startTime: String!, $endTime: String!, $status: String!, $reasonForVisit: String!) @auth(level: USER) {
+  appointment_insert(data: {
+    patientId: $patientId,
+    medicalProfessionalId: $medicalProfessionalId,
+    appointmentDate: $appointmentDate,
+    startTime: $startTime,
+    endTime: $endTime,
+    status: $status,
+    reasonForVisit: $reasonForVisit
+  })
+}
+
+mutation UpdateMedicalRecord($id: UUID!, $treatment: String, $prescriptions: String, $observations: String) @auth(expr: "auth.token.role == 'medicalProfessional'") {
+  medicalRecord_update(key: {id: $id}, data: {
+    treatment: $treatment,
+    prescriptions: $prescriptions,
+    observations: $observations
+  })
+}

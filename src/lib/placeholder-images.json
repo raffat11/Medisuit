@@ -1,0 +1,34 @@
+{
+  "placeholderImages": [
+    {
+      "id": "doctor-avatar",
+      "description": "Avatar for a doctor user",
+      "imageUrl": "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxkb2N0b3IlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTkxMzQwMTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor portrait"
+    },
+    {
+      "id": "appointments-card",
+      "description": "Image for appointments card on the dashboard",
+      "imageUrl": "https://images.unsplash.com/photo-1642489069222-3b8f36c0e89e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYWxlbmRhciUyMHNjaGVkdWxlfGVufDB8fHx8MTc1OTA3NzE1N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "calendar schedule"
+    },
+    {
+      "id": "patients-card",
+      "description": "Image for patients card on the dashboard",
+      "imageUrl": "https://images.unsplash.com/photo-1586627789099-e9d422d1c5cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwZW9wbGUlMjBjb21tdW5pdHl8ZW58MHx8fHwxNzU5MTM1MzQwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "people community"
+    },
+    {
+      "id": "inventory-card",
+      "description": "Image for inventory card on the dashboard",
+      "imageUrl": "https://images.unsplash.com/photo-1698466632366-09fa1d925de6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwaGFybWFjeSUyMHNoZWxmfGVufDB8fHx8MTc1OTA1MDUxMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pharmacy shelf"
+    },
+    {
+      "id": "invoicing-card",
+      "description": "Image for invoicing card on the dashboard",
+      "imageUrl": "https://images.unsplash.com/photo-1735825764445-af30f44dc49f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxpbnZvaWNlJTIwcGF5bWVudHxlbnwwfHx8fDE3NTkxMTI5Mjh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "invoice payment"
+    }
+  ]
+}

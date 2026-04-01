@@ -1,0 +1,57 @@
+type User @table {
+  firstName: String!
+  lastName: String!
+  email: String!
+  role: String! # e.g., 'MedicalProfessional', 'Administrator', 'Patient'
+  createdAt: Timestamp!
+  phoneNumber: String
+  specialty: String
+  dateOfBirth: Date
+}
+
+type Patient @table {
+  firstName: String!
+  lastName: String!
+  dateOfBirth: Date!
+  gender: String!
+  createdAt: Timestamp!
+  address: String
+  phoneNumber: String
+  email: String
+  emergencyContactName: String
+  emergencyContactPhone: String
+  user: User
+}
+
+type Appointment @table {
+  appointmentDate: Date!
+  startTime: String!
+  endTime: String!
+  status: String! # e.g., 'Scheduled', 'Completed', 'Cancelled'
+  notes: String
+  reasonForVisit: String
+  medicalProfessional: User!
+  patient: Patient!
+}
+
+type MedicalRecord @table {
+  visitDate: Date!
+  diagnosis: String!
+  createdAt: Timestamp!
+  treatment: String
+  prescriptions: String
+  observations: String
+  patient: Patient!
+  appointment: Appointment
+}
+
+type Invoice @table {
+  invoiceDate: Date!
+  totalAmount: Float!
+  status: String! # e.g., 'Pending', 'Paid', 'Overdue'
+  createdAt: Timestamp!
+  servicesDescription: String
+  paymentDate: Date
+  patient: Patient!
+  appointment: Appointment
+}

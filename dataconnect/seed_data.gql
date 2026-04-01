@@ -1,0 +1,79 @@
+mutation CreateDemoData @transaction @auth(level: USER, insecureReason: "Seed data mutation for development purposes.") {
+  user_insertMany(data: [
+    {
+      id: "user1-uuid",
+      firstName: "Alice",
+      lastName: "Smith",
+      email: "alice.smith@example.com",
+      role: "medical_professional",
+      createdAt_expr: "request.time",
+      phoneNumber: "111-222-3333",
+      specialty: "General Practice",
+      dateOfBirth: "1980-01-15"
+    },
+    {
+      id: "user2-uuid",
+      firstName: "Bob",
+      lastName: "Johnson",
+      email: "bob.johnson@example.com",
+      role: "patient",
+      createdAt_expr: "request.time",
+      phoneNumber: "444-555-6666",
+      dateOfBirth: "1995-05-20"
+    }
+  ])
+  patient_insertMany(data: [
+    {
+      id: "patient1-uuid",
+      firstName: "Bob",
+      lastName: "Johnson",
+      dateOfBirth: "1995-05-20",
+      gender: "Male",
+      createdAt_expr: "request.time",
+      address: "123 Main St",
+      phoneNumber: "444-555-6666",
+      email: "bob.johnson@example.com",
+      emergencyContactName: "Carol Johnson",
+      emergencyContactPhone: "777-888-9999",
+      userId: "user2-uuid"
+    }
+  ])
+  appointment_insertMany(data: [
+    {
+      id: "appointment1-uuid",
+      appointmentDate: "2024-03-10",
+      startTime: "10:00",
+      endTime: "10:30",
+      status: "Scheduled",
+      notes: "Annual check-up",
+      reasonForVisit: "General Health",
+      medicalProfessionalId: "user1-uuid",
+      patientId: "patient1-uuid"
+    }
+  ])
+  medicalRecord_insertMany(data: [
+    {
+      id: "medicalrecord1-uuid",
+      visitDate: "2024-03-10",
+      diagnosis: "Common cold",
+      createdAt_expr: "request.time",
+      treatment: "Rest and fluids",
+      prescriptions: "None",
+      observations: "Patient showed mild symptoms",
+      patientId: "patient1-uuid",
+      appointmentId: "appointment1-uuid"
+    }
+  ])
+  invoice_insertMany(data: [
+    {
+      id: "invoice1-uuid",
+      invoiceDate: "2024-03-10",
+      totalAmount: 150.00,
+      status: "Pending",
+      createdAt_expr: "request.time",
+      servicesDescription: "Consultation and check-up",
+      patientId: "patient1-uuid",
+      appointmentId: "appointment1-uuid"
+    }
+  ])
+}
