@@ -76,7 +76,7 @@ export function GlobalDialogs() {
         }
     };
     
-     const handleUpdatePatient = async (data: Omit<Patient, 'id' | 'isBlacklisted'>) => {
+    const handleUpdatePatient = async (data: Omit<Patient, 'id' | 'isBlacklisted'>) => {
         if (!patientData) return;
         setIsLoading(true);
         try {
@@ -174,41 +174,52 @@ export function GlobalDialogs() {
                 throw new Error("La factura original no fue encontrada.");
             }
 
+            // 1. Validar stock únicamente para items que SÍ fueron entregados
             for (const item of data.items) {
-                const med = allMedications.find(m => m.name === item.description);
-                if (med) {
-                    const medDoc = await transaction.get(doc(db, 'medications', med.id));
-                    if (!medDoc.exists()) throw new Error(`Medicamento "${item.description}" no encontrado.`);
-                    
-                    const originalInvoiceData = originalInvoiceDoc?.data() as Invoice | undefined;
-                    const originalQuantity = originalInvoiceData?.items.find(i => i.description === item.description)?.quantity || 0;
-                    const currentStock = (medDoc.data() as Medication).stock;
-                    
-                    if (item.quantity > currentStock + (isEditing ? originalQuantity : 0)) {
-                         throw new Error(`No hay suficiente stock para "${item.description}".`);
+                if (item.isProvided !== false) {
+                    const med = allMedications.find(m => m.name === item.description);
+                    if (med) {
+                        const medDoc = await transaction.get(doc(db, 'medications', med.id));
+                        if (!medDoc.exists()) throw new Error(`Medicamento "${item.description}" no encontrado.`);
+                        
+                        const originalInvoiceData = originalInvoiceDoc?.data() as Invoice | undefined;
+                        const originalItem = originalInvoiceData?.items.find(i => i.description === item.description);
+                        const originalQuantity = (originalItem && originalItem.isProvided !== false) ? originalItem.quantity : 0;
+                        const currentStock = (medDoc.data() as Medication).stock;
+                        
+                        if (item.quantity > currentStock + (isEditing ? originalQuantity : 0)) {
+                             throw new Error(`No hay suficiente stock para "${item.description}".`);
+                        }
                     }
                 }
             }
     
+            // 2. Si es edición, devolver al inventario los items que se habían entregado previamente
             if (isEditing) {
               const originalInvoice = originalInvoiceDoc!.data() as Invoice;
               for (const item of originalInvoice.items) {
-                const med = allMedications.find(m => m.name === item.description);
-                if (med) {
-                  const medRef = doc(db, 'medications', med.id);
-                  transaction.update(medRef, { stock: increment(item.quantity) });
+                if (item.isProvided !== false) {
+                    const med = allMedications.find(m => m.name === item.description);
+                    if (med) {
+                      const medRef = doc(db, 'medications', med.id);
+                      transaction.update(medRef, { stock: increment(item.quantity) });
+                    }
                 }
               }
             }
-    
+
+            // 3. Descontar del inventario únicamente los items entregados
             for (const item of data.items) {
-              const med = allMedications.find(m => m.name === item.description);
-              if (med) {
-                const medRef = doc(db, 'medications', med.id);
-                transaction.update(medRef, { stock: increment(-item.quantity) });
-              }
+                if (item.isProvided !== false) {
+                    const med = allMedications.find(m => m.name === item.description);
+                    if (med) {
+                      const medRef = doc(db, 'medications', med.id);
+                      transaction.update(medRef, { stock: increment(-item.quantity) });
+                    }
+                }
             }
     
+            // 4. Guardar o actualizar la factura en Firestore
             if (isEditing) {
               const invoiceDoc = doc(db, "invoices", invoiceData.id);
               transaction.update(invoiceDoc, {...data, date: invoiceDate});

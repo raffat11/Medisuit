@@ -8,7 +8,6 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useData } from './data-context';
 
-// CORRECCIÓN PARA VENTA LIBRE: Permitimos que appointmentId sea opcional o nulo
 type QuickInvoiceData = {
     patientId: string;
     patientName: string;
@@ -103,7 +102,6 @@ type DialogContextType = {
     excludedMedicationIds: string[];
     clearPrescriptionSelections: () => void;
 
-
     isSupplierMergeOpen: boolean;
     openSupplierMergeDialog: () => void;
     closeSupplierMergeDialog: () => void;
@@ -118,7 +116,6 @@ type DialogContextType = {
     medicationHistoryData: Medication | null;
     openMedicationHistoryDialog: (medication: Medication) => void;
     closeMedicationHistoryDialog: () => void;
-
 
     clearInvoiceSelections: () => void;
     clearAppointmentSelections: () => void;
@@ -195,14 +192,12 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
     const [isMedicationHistoryOpen, setIsMedicationHistoryOpen] = useState(false);
     const [medicationHistoryData, setMedicationHistoryData] = useState<Medication | null>(null);
 
-
     const openSupplierMergeDialog = () => {
         setIsSupplierMergeOpen(true);
     };
     const closeSupplierMergeDialog = () => {
         setIsSupplierMergeOpen(false);
     };
-
 
     React.useEffect(() => {
         const unsub = onSnapshot(collection(db, 'appointments'), (snapshot) => {
@@ -261,7 +256,6 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
             if (options?.newMedication) {
                 setNewlyAddedMedication(options.newMedication);
             }
-            // Instead of closing the bill dialog, we just hide it and show it again on close.
             setIsBillOpen(false);
             setTimeout(() => {
                 setIsBillItemSelectorOpen(true);
@@ -303,16 +297,13 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
         setAppointmentViewData(null);
     };
 
-    // CORRECCIÓN CLAVE: openInvoiceDialog ahora limpia o pre-formatea los datos para evitar undefined
     const openInvoiceDialog = (invoice: Invoice | null, prefillData?: QuickInvoiceData) => {
         setInvoiceData(invoice);
         
-        // Si hay prefillData (como en Venta Libre o desde Cita), 
-        // nos aseguramos de que appointmentId no sea undefined.
         if (prefillData) {
           setInvoicePrefillData({
             ...prefillData,
-            appointmentId: prefillData.appointmentId || null // Transformamos undefined en null
+            appointmentId: prefillData.appointmentId || null
           });
         } else {
           setInvoicePrefillData(null);
@@ -328,16 +319,19 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
         clearInvoiceSelections();
     };
 
+    // ✅ FUNCIÓN CORREGIDA: Solo devuelve al inventario si el ítem realmente FUE ENTREGADO (isProvided !== false)
     const handleDeleteInvoice = async (invoice: Invoice) => {
         try {
             await runTransaction(db, async (transaction) => {
                 const invoiceDocRef = doc(db, 'invoices', invoice.id);
                 
                 for (const item of invoice.items) {
-                    const med = allMedications.find(m => m.name === item.description);
-                    if (med) {
-                        const medDocRef = doc(db, "medications", med.id);
-                        transaction.update(medDocRef, { stock: increment(item.quantity) });
+                    if (item.isProvided !== false) {
+                        const med = allMedications.find(m => m.name === item.description);
+                        if (med) {
+                            const medDocRef = doc(db, "medications", med.id);
+                            transaction.update(medDocRef, { stock: increment(item.quantity) });
+                        }
                     }
                 }
                 
@@ -346,7 +340,7 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
 
             toast({
                 title: 'Factura Eliminada',
-                description: 'La factura ha sido eliminada y el stock ha sido revertido.',
+                description: 'La factura ha sido eliminada y el stock ha sido ajustado correctamente.',
                 variant: 'destructive',
             });
 
@@ -469,7 +463,6 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
     }
     
     const openBillItemSelector = (currentItems: BillItem[], supplierName?: string) => {
-        // We don't call closeBillDialog here, just hide the bill dialog
         setIsBillOpen(false);
         setInitialItemsForBillSelector(currentItems);
         setBillItemSelectorSupplier(supplierName);
@@ -479,8 +472,6 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
     const closeBillItemSelector = () => {
         setIsBillItemSelectorOpen(false);
         setNewlyAddedMedication(null);
-        // This timeout ensures the bill dialog reopens correctly after the item selector closes.
-        // It preserves the 'fromInventory' state by not calling closeBillDialog.
         setTimeout(() => {
             setIsBillOpen(true);
         }, 150)
@@ -490,7 +481,6 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
         setSelectedItemsForBill(items);
         closeBillItemSelector();
     };
-
 
     const clearInvoiceSelections = useCallback(() => {
         setSelectedPatientForInvoice(null);
@@ -506,8 +496,6 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
     const clearBillSelections = useCallback(() => {
         setSelectedItemsForBill([]);
     }, []);
-
-
 
     const openMedicationSelector = (excludedIds: string[]) => {
         setExcludedMedicationIds(excludedIds);
@@ -554,9 +542,8 @@ export const DialogProvider = ({ children }: PropsWithChildren) => {
             unavailable.push(conflictingTime);
         }
         
-        return Array.from(new Set(unavailable)); // Return unique times
+        return Array.from(new Set(unavailable));
     }, [appointments, appointmentData, conflictingTime]);
-
 
     const value = {
         isAppointmentOpen, setIsAppointmentOpen, appointmentData, openAppointmentDialog, closeAppointmentDialog, newlyAddedPatient, setConflictingTime,
