@@ -174,23 +174,34 @@ export function GlobalDialogs() {
                 throw new Error("La factura original no fue encontrada.");
             }
 
-            // 1. Validar stock únicamente para items que SÍ fueron entregados
-            for (const item of data.items) {
-                if (item.isProvided !== false) {
-                    const med = allMedications.find(m => m.name === item.description);
-                    if (med) {
-                        const medDoc = await transaction.get(doc(db, 'medications', med.id));
-                        if (!medDoc.exists()) throw new Error(`Medicamento "${item.description}" no encontrado.`);
-                        
-                        const originalInvoiceData = originalInvoiceDoc?.data() as Invoice | undefined;
-                        const originalItem = originalInvoiceData?.items.find(i => i.description === item.description);
-                        const originalQuantity = (originalItem && originalItem.isProvided !== false) ? originalItem.quantity : 0;
-                        const currentStock = (medDoc.data() as Medication).stock;
-                        
-                        if (item.quantity > currentStock + (isEditing ? originalQuantity : 0)) {
-                             throw new Error(`No hay suficiente stock para "${item.description}".`);
-                        }
+            // 1. Validar stock agregando cantidades por medicamento (soporta líneas duplicadas)
+            const originalQtyByMed = new Map<string, number>();
+            if (isEditing && originalInvoiceDoc?.exists()) {
+                const originalInvoice = originalInvoiceDoc.data() as Invoice;
+                for (const item of originalInvoice.items) {
+                    if (item.isProvided !== false && allMedications.some(m => m.name === item.description)) {
+                        originalQtyByMed.set(item.description, (originalQtyByMed.get(item.description) ?? 0) + item.quantity);
                     }
+                }
+            }
+
+            const newQtyByMed = new Map<string, number>();
+            for (const item of data.items) {
+                if (item.isProvided !== false && allMedications.some(m => m.name === item.description)) {
+                    newQtyByMed.set(item.description, (newQtyByMed.get(item.description) ?? 0) + item.quantity);
+                }
+            }
+
+            for (const [description, newQuantity] of Array.from(newQtyByMed.entries())) {
+                const med = allMedications.find(m => m.name === description)!;
+                const medDoc = await transaction.get(doc(db, 'medications', med.id));
+                if (!medDoc.exists()) throw new Error(`Medicamento "${description}" no encontrado.`);
+
+                const currentStock = (medDoc.data() as Medication).stock;
+                const originalQuantity = isEditing ? (originalQtyByMed.get(description) ?? 0) : 0;
+
+                if (newQuantity > currentStock + originalQuantity) {
+                    throw new Error(`No hay suficiente stock para "${description}".`);
                 }
             }
     
