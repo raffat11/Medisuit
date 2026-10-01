@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import type { Invoice, Patient } from '@/lib/types';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 type InvoiceReceiptProps = {
   invoice: Invoice;
@@ -18,21 +20,47 @@ const formatCurrency = (amount: number) => {
 
 export const InvoiceReceipt = React.forwardRef<HTMLDivElement, InvoiceReceiptProps>(
     ({ invoice, patient }, ref) => {
+        const [clinicSettings, setClinicSettings] = React.useState({
+            entityName: 'Consultorio Médico',
+            phone: '',
+            address: '',
+            logoUrl: '/apple-icon.png'
+        });
+
+        React.useEffect(() => {
+            const unsub = onSnapshot(doc(db, 'settings', 'clinic_profile'), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    setClinicSettings({
+                        entityName: data.entityName || 'Consultorio Médico',
+                        phone: data.phone || '',
+                        address: data.address || '',
+                        logoUrl: data.logoURL || '/apple-icon.png'
+                    });
+                }
+            });
+            return () => unsub();
+        }, []);
         
         const statusText = invoice.status === 'Paid' ? 'Pagada' : invoice.status === 'Pending' ? 'Pendiente' : 'Vencida';
         const invoiceIdentifier = invoice.invoiceNumber || invoice.id;
-        const logoUrl = typeof window !== 'undefined' ? `${window.location.origin}/apple-icon.png` : '/apple-icon.png';
+        
+        const finalLogoUrl = clinicSettings.logoUrl.startsWith('http') 
+            ? clinicSettings.logoUrl 
+            : (typeof window !== 'undefined' ? `${window.location.origin}${clinicSettings.logoUrl}` : clinicSettings.logoUrl);
 
         return (
             <div ref={ref} style={{ width: '320px', padding: '20px', backgroundColor: 'white', fontFamily: '"PT Sans", sans-serif', color: '#374151', fontSize: '12px' }}>
                 <header style={{ textAlign: 'center', borderBottom: '1px dashed #9CA3AF', paddingBottom: '10px', marginBottom: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-                         <img src={logoUrl} alt="Logo del Consultorio" style={{ width: '48px', height: '48px', borderRadius: '6px', objectFit: 'contain' }} />
+                         <img crossOrigin="anonymous" src={finalLogoUrl} alt="Logo de la entidad" style={{ width: '48px', height: '48px', borderRadius: '6px', objectFit: 'contain' }} />
                     </div>
-                    <h1 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 4px 0' }}>Consultorio Médico Integral</h1>
-                    <p style={{ margin: '0', fontSize: '11px' }}>Calle 160 # 21-47, Bogotá</p>
-                    <p style={{ margin: '0', fontSize: '11px' }}>Tel: 3115210015</p>
-                    <p style={{ margin: '0', fontSize: '11px' }}>NIT: 79126356-6</p>
+                    {/* Nombre en mayúsculas forzadas */}
+                    <h1 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 4px 0', textTransform: 'uppercase' }}>
+                        {clinicSettings.entityName}
+                    </h1>
+                    {clinicSettings.address && <p style={{ margin: '0', fontSize: '11px' }}>{clinicSettings.address}</p>}
+                    {clinicSettings.phone && <p style={{ margin: '0', fontSize: '11px' }}>Tel: {clinicSettings.phone}</p>}
                 </header>
 
                 <main>
@@ -44,7 +72,7 @@ export const InvoiceReceipt = React.forwardRef<HTMLDivElement, InvoiceReceiptPro
 
                     <div style={{ borderTop: '1px dashed #9CA3AF', paddingTop: '10px', marginBottom: '10px' }}>
                         <h2 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Cliente:</h2>
-                        <p style={{ margin: '0', fontWeight: 'bold' }}>{patient?.name || invoice.patientName}</p>
+                        <p style={{ margin: '0', fontWeight: 'bold', textTransform: 'uppercase' }}>{patient?.name || invoice.patientName}</p>
                     </div>
                     
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', borderTop: '1px dashed #9CA3AF', borderBottom: '1px dashed #9CA3AF', padding: '5px 0' }}>
@@ -57,7 +85,7 @@ export const InvoiceReceipt = React.forwardRef<HTMLDivElement, InvoiceReceiptPro
                         </thead>
                         <tbody>
                             {invoice.items.map((item, index) => {
-                                const isProvided = item.isProvided !== false; // Lógica del interruptor
+                                const isProvided = item.isProvided !== false;
                                 
                                 return (
                                 <tr key={index} style={{ color: !isProvided ? '#9CA3AF' : 'inherit' }}>

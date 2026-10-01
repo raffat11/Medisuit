@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import type { Invoice, Patient } from '@/lib/types';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 type InvoiceImageProps = {
   invoice: Invoice;
@@ -18,21 +20,48 @@ const formatCurrency = (amount: number) => {
 
 export const InvoiceImage = React.forwardRef<HTMLDivElement, InvoiceImageProps>(
     ({ invoice, patient }, ref) => {
-        
+        const [clinicSettings, setClinicSettings] = React.useState({
+            entityName: 'Consultorio Médico',
+            phone: '',
+            address: '',
+            logoUrl: '/apple-icon.png'
+        });
+
+        React.useEffect(() => {
+            const unsub = onSnapshot(doc(db, 'settings', 'clinic_profile'), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    setClinicSettings({
+                        entityName: data.entityName || 'Consultorio Médico',
+                        phone: data.phone || '',
+                        address: data.address || '',
+                        logoUrl: data.logoURL || '/apple-icon.png'
+                    });
+                }
+            });
+            return () => unsub();
+        }, []);
+
         const statusText = invoice.status === 'Paid' ? 'Pagada' : invoice.status === 'Pending' ? 'Pendiente' : 'Vencida';
         const invoiceIdentifier = invoice.invoiceNumber || invoice.id;
-        const logoUrl = typeof window !== 'undefined' ? `${window.location.origin}/apple-icon.png` : '/apple-icon.png';
+        
+        // Aseguramos que la URL del logo funcione bien tanto local como remota para la generación de la imagen
+        const finalLogoUrl = clinicSettings.logoUrl.startsWith('http') 
+            ? clinicSettings.logoUrl 
+            : (typeof window !== 'undefined' ? `${window.location.origin}${clinicSettings.logoUrl}` : clinicSettings.logoUrl);
 
         return (
             <div ref={ref} style={{ width: '800px', padding: '40px', backgroundColor: 'white', fontFamily: '"PT Sans", sans-serif', color: '#374151' }}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #E5E7EB', paddingBottom: '20px', marginBottom: '40px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <img src={logoUrl} alt="Logo del Consultorio" style={{ width: '180px', height: '180px', borderRadius: '8px', objectFit: 'contain' }} />
+                        <img crossOrigin="anonymous" src={finalLogoUrl} alt="Logo del Consultorio" style={{ width: '180px', height: '180px', borderRadius: '8px', objectFit: 'contain' }} />
                         <div>
-                            <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Consultorio Médico Integral</h1>
-                            <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>Calle 160 # 21-47, Bogotá</p>
-                            <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>Tel: 3115210015</p>
-                            <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>NIT: 79126356-6</p>
+                            {/* Nombre en mayúsculas gracias a textTransform */}
+                            <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#111827', margin: 0, textTransform: 'uppercase' }}>
+                                {clinicSettings.entityName}
+                            </h1>
+                            {clinicSettings.address && <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>{clinicSettings.address}</p>}
+                            {clinicSettings.phone && <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>Tel: {clinicSettings.phone}</p>}
                         </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -45,7 +74,7 @@ export const InvoiceImage = React.forwardRef<HTMLDivElement, InvoiceImageProps>(
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginBottom: '40px' }}>
                         <div>
                             <h3 style={{ fontSize: '12px', color: '#6B7280', textTransform: 'uppercase', marginBottom: '8px' }}>Facturado a</h3>
-                            <p style={{ margin: 0, fontWeight: 'bold' }}>{patient?.name || invoice.patientName}</p>
+                            <p style={{ margin: 0, fontWeight: 'bold', textTransform: 'uppercase' }}>{patient?.name || invoice.patientName}</p>
                             {patient?.email && <p style={{ margin: '4px 0 0 0' }}>{patient.email}</p>}
                             {patient?.phone && <p style={{ margin: '4px 0 0 0' }}>{patient.phone}</p>}
                         </div>
