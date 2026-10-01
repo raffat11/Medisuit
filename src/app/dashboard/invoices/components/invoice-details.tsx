@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -70,16 +69,21 @@ export function InvoiceDetails({ invoice, onDone, patient }: InvoiceDetailsProps
   const invoiceReceiptRef = React.useRef<HTMLDivElement>(null);
 
   const [isGenerating, setIsGenerating] = React.useState(false);
+  
+  // Nuevos estados para controlar la previsualización de la imagen
+  const [previewImage, setPreviewImage] = React.useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = React.useState<string>("");
+  
   const { toast } = useToast();
   const invoiceIdentifier = invoice.invoiceNumber || invoice.id;
   
   const generateAndOpenImage = async (ref: React.RefObject<HTMLDivElement>, width: number, title: string) => {
-      if (!ref.current) {
-        toast({
-            title: "Error al generar imagen",
-            description: "No se pudo encontrar la plantilla de la factura.",
-            variant: "destructive",
-        })
+    if (!ref.current) {
+      toast({
+          title: "Error al generar imagen",
+          description: "No se pudo encontrar la plantilla de la factura.",
+          variant: "destructive",
+      })
       return;
     }
 
@@ -92,21 +96,11 @@ export function InvoiceDetails({ invoice, onDone, patient }: InvoiceDetailsProps
             fontEmbedCSS: fontEmbedCss,
             width,
         });
-        const newWindow = window.open();
-        newWindow?.document.write(`
-            <html>
-                <head>
-                    <title>${title}</title>
-                    <style>
-                        body { margin: 0; background-color: #f0f4f7; display: flex; justify-content: center; align-items: flex-start; padding-top: 2rem; padding-bottom: 2rem; min-height: 100vh; }
-                        img { max-width: 100%; height: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-                    </style>
-                </head>
-                <body>
-                    <img src="${dataUrl}" alt="${title}" />
-                </body>
-            </html>
-        `);
+
+        // En lugar de pelear con las descargas de Safari, mostramos la imagen en pantalla
+        setPreviewTitle(title);
+        setPreviewImage(dataUrl);
+
     } catch(err) {
         console.error('oops, something went wrong!', err);
          toast({
@@ -212,6 +206,32 @@ export function InvoiceDetails({ invoice, onDone, patient }: InvoiceDetailsProps
           </Button>
         </div>
       </div>
+
+      {/* MODAL DE PREVISUALIZACIÓN DE IMAGEN */}
+      {previewImage && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
+            <div className="flex w-full max-w-md justify-between items-center mb-4">
+                <h3 className="text-white font-medium">{previewTitle}</h3>
+                <Button variant="ghost" size="icon" onClick={() => setPreviewImage(null)} className="text-white hover:bg-white/20">
+                    X
+                </Button>
+            </div>
+            
+            <div className="relative overflow-hidden rounded-lg shadow-2xl max-h-[75vh] w-auto">
+                {/* La imagen generada */}
+                <img src={previewImage} alt="Factura" className="object-contain max-h-[75vh]" />
+            </div>
+            
+            <p className="text-white/70 text-sm mt-6 text-center">
+                📱 En móvil: <strong className="text-white">Mantén presionada la imagen</strong> para guardarla o compartirla.<br/><br/>
+                💻 En PC: Haz clic derecho y elige "Guardar imagen como...".
+            </p>
+            
+            <Button onClick={() => setPreviewImage(null)} className="mt-6 w-full max-w-sm bg-white text-black hover:bg-gray-200 border border-white/20">
+                Volver a la factura
+            </Button>
+        </div>
+      )}
     </>
   );
 }
